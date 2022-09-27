@@ -3,32 +3,11 @@
 This script naively translates some Dockerfile instructions into corresponding shell commands.
 
 ## Usage
+Use dkr2sh.sed, a sed script.
 
-The file to use is `dkr2sh.sed`, which is a sed script, note how it starts:
-```
-#!/bin/sed -f
-# Convert Dockerfile to shell script.
-```
+`./dkr2sh.sed < path-to-Dockerfile > mydockerscript.sh`
 
-To use it, normal sed usage implies it takes stdin and outputs stdout. So:
-```
-./dkr2sh.sed < Dockerfile > mydockerscript.sh
-```
-
-## Contributing
-The explanation of the tranform rules below matches with .sh files, eg. `copy-from.sh`, `copy.sh` and `add.sh`
-
-In the `dkr2sh.sed` file, the transform rules have been translated to sed patterns. The `sh2sed.sh` is the helper script that can do this as part of manual labour. You can change any of the patterns and run, eg. `./sh2sed.sh < copy-from.sh` and you will get this:
-```
-for i in ARGS; do\n\ttest -d "$i" \&\& i="$i\/"\n\trsync -a "$i" DEST # FROM\ndone
-```
-
-It matches the replacement string in the `dkr2sh.sed` file, here, but with match groups inserted inplace of ARGS, DEST, FROM
-```
-s/^[[:space:]]*COPY\([[:space:]]\+--from=[^[:space:]]\+\)\(\([[:space:]]\+[^[:space:]]\+\)\+\)\([[:space:]]\+[^[:space:]]\+\)[[:space:]]*/for i in\2; do\n\ttest -d "$i" \&\& i="$i\/"\n\trsync -a "$i"\4 #\1\ndone/i
-```
-
-Each match group and result has to be implemented manually.
+`<` denotes input file, `>` denotes output file in sed scripts. 
 
 ## Conversion Rules
 
@@ -41,6 +20,7 @@ Each match group and result has to be implemented manually.
 * EXPOSE
 * ENTRYPOINT
 * VOLUME
+* ARG
 * ONBUILD
 * STOPSIGNAL
 * HEALTHCHECK
@@ -50,25 +30,15 @@ Translate these instructions manually:
 * USER - execute the next block(s) with `su` or equivalent
 * SHELL - unwrap JSON-formatted arguments, run it for subsequent block(s)
 
-Additionally, any pure comment lines (starting with `#`) are removed during conversion in order to support multi-line RUN statements with embedded comments, which is standard Dockerfile practise.
-
 ### ENV
 
 Before:
 
     ENV FOO bar
-    ENV FOO=bar
-    ENV FOO
 
 After:
 
     export FOO=bar
-    export FOO=bar
-    # (no value assigned) ENV FOO
-
-### ARG
-
-Same as ENV
 
 ### RUN
 
@@ -147,8 +117,6 @@ After:
 ## Copyright
 
 Copyright 2018, Development Gateway
-
-Copyright 2022, Dennis Schneidermann - modifications stated in source
 
 This program is free software: you can redistribute it and/or modify it under the terms of
 the GNU General Public License as published by the Free Software Foundation, either version 3 of
